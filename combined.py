@@ -128,7 +128,7 @@ for chat in current_history:
     st.markdown(f'<div class="chat-message bot"><p>{chat["answer"]}</p></div>', unsafe_allow_html=True)
 
 # Input for new question
-question = st.text_input("Ask me Anything about Crendly and Humexid and More...", key="question_input")
+question = st.text_input("Hi, Do you have any complaint about any company (First Bank, MTN NG), I'm Trustly, I can asist you!", key="question_input")
 
 # Handle question submission
 if st.button("Send") and question:

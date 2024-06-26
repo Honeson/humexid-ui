@@ -1,6 +1,6 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ from langchain.chains import RetrievalQAWithSourcesChain
 
 from groq import Groq
 from langchain_groq import ChatGroq
+from langchain_anthropic import ChatAnthropic
 
 import joblib
 import os
@@ -34,29 +35,37 @@ app = FastAPI()
 
 llamaparse_api_key = os.environ.get('LLAMA_CLOUD_API_KEY')
 groq_api_key = os.environ.get("GROQ_API_KEY")
+anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY')
 
 class Query(BaseModel):
     question: str
     session_id: str
 
 # Custom prompt template
-custom_prompt_template = """You are Zilla, an AI assistant created by Humexid (Founded by Damilare Odueso). Your role is to provide helpful solutions about Humexid's products, Crendly and Trustbreed, while also offering general assistance to the customers. You have access to specific information about these products from provided documents, as well as extensive general knowledge.
+custom_prompt_template = """You are an advanced AI Customer Care agent for Trustbreed, a platform that helps users escalate complaints and review brands. Your primary goal is to assist users in resolving their issues efficiently and effectively. You have access to specific information about complaints, resolutions, and company FAQs from provided documents, as well as extensive general knowledge.
 
-When answering queries about Crendly or Trustbreed, use the following context:
+When answering queries or addressing complaints, use the following context:
 {context}
 
-Always cite your sources precisely:
-1. For Crendly or Trustbreed info, cite as "Crendly PDF, Page X" or "Trustbreed PDF, Page X."
-2. For external info, provide the full, direct URL (e.g., "https://www.example.com/page").
-3. If combining sources, list all with their specific citations.
+Always cite your sources precisely when referencing specific information from the provided documents.
 
 Previous conversation:
 {chat_history}
 
-Current question: {question}
+Current query or complaint: {question}
 
-Always Maintain professionalism and don't reintroduce yourself when you had already done that.
+Maintain a professional, empathetic tone throughout. Don't reintroduce yourself if you've already done so. Follow these guidelines:
 
+1. Analyze the query or complaint thoroughly.
+2. If you can provide a resolution based on the context, do so clearly and concisely.
+3. If more information is needed, ask targeted follow-up questions.
+4. If you cannot fully resolve the issue, guide the user on submitting a formal complaint through Trustbreed, and do not try to make up an answer.
+5. Tailor responses to the specific company or brand mentioned when applicable.
+6. Prioritize user privacy and avoid asking for sensitive information unless necessary.
+7. After providing assistance, ask for feedback on the solution or guidance offered.
+8. When necessary, always mention the specific company name you're in the response you're providing to a customer.
+
+Remember to maintain context in multi-turn conversations and handle unclear inputs gracefully. Always strive to exceed the level of service provided by an expert human customer care representative.
 
 Helpful Answer:"""
 
@@ -75,9 +84,34 @@ def load_or_parse_data(pdf_dir="pdf/"):
     if os.path.exists(data_file):
         parsed_data = joblib.load(data_file)
     else:
-        parsingInstructionTrustbreed = """The provided document is a contains information about Trustbreed Inc, a platform that helps
-        people escalate their complaints to the service providers for faster resolution, and Crendly - an I-driven P2P lending service.
-        Try to be precise while answering the questions. Always include the page number where you found the information."""
+        parsingInstructionTrustbreed = """
+    The provided document contains questions, answers, complaints, and resolutions related to various companies.
+
+    - Extract all questions and their corresponding answers.
+    - Extract all complaints and their associated resolutions.
+    - Identify and extract the company names associated with each set of information.
+
+  
+    - For each company, create a separate section with the company name as the heading.
+    - Under each company heading, clearly label and separate:
+        - Questions and Answers
+        - Complaints and Resolutions
+    - Maintain the original order of information as it appears in the document.
+
+    - For each extracted piece of information (question, answer, complaint, or resolution), indicate the page number from which it was extracted.
+    - Format page numbers as: [Page X] at the end of each extracted item.
+
+    - If a single item (question, answer, complaint, or resolution) spans multiple pages, indicate the range:
+    [Pages X-Y]
+
+    - Maintain any crucial formatting (e.g., bullet points, numbered lists) within the extracted text.
+
+    - f it's unclear which company a piece of information belongs to, place it under a separate "Unspecified Company" heading.
+
+    - Ensure all relevant information from the document is extracted and properly categorized.
+    
+    - Please process the entire document according to these instructions, ensuring accuracy in extraction and clear organization of the output.
+        """
         parser = LlamaParse(api_key=llamaparse_api_key, result_type="markdown", parsing_instruction=parsingInstructionTrustbreed, max_timeout=5000,)
          # Get all PDF file paths
         
@@ -99,32 +133,32 @@ def load_or_parse_data(pdf_dir="pdf/"):
 
 parsed_data = load_or_parse_data()
 
-# def create_vector_database_remove():
-#     with open('data/output.md', 'w') as f:  # Open the file in write mode ('w') to overwrite
-#         for doc in parsed_data:
-#             f.write(doc.text + '\n')
+def create_vector_database_remove():
+    with open('data/output.md', 'w') as f:  # Open the file in write mode ('w') to overwrite
+        for doc in parsed_data:
+            f.write(doc.text + '\n')
 
-#     markdown_path = "data/output.md"
-#     loader = UnstructuredMarkdownLoader(markdown_path)
+    markdown_path = "data/output.md"
+    loader = UnstructuredMarkdownLoader(markdown_path)
 
-#     documents = loader.load()
-#     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
-#     docs = text_splitter.split_documents(documents)
+    documents = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
+    docs = text_splitter.split_documents(documents)
 
-#     print(f"length of documents loaded: {len(documents)}")
-#     print(f"total number of document chunks generated :{len(docs)}")
+    print(f"length of documents loaded: {len(documents)}")
+    print(f"total number of document chunks generated :{len(docs)}")
 
-#     embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
+    embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
 
-#     vs = Chroma.from_documents(
-#         documents=docs,
-#         embedding=embed_model,
-#         persist_directory="chroma_db_llamaparse1",
-#         collection_name="equitech"
-#     )
+    vs = Chroma.from_documents(
+        documents=docs,
+        embedding=embed_model,
+        persist_directory="chroma_db_llamaparse1",
+        collection_name="equitech"
+    )
 
-#     print('Vector DB created successfully!')
-#     return vs, embed_model
+    print('Vector DB created successfully!')
+    return vs, embed_model
 
 def create_vector_database():
     persist_directory = "chroma_db_llamaparse1"
@@ -140,14 +174,16 @@ def create_vector_database():
     return vectorstore, embed_model
 
 # Initialize Groq for acceleration
-groq_accelerator = Groq()
+#groq_accelerator = Groq()
 
 # Initialize Groq Chat model
-chat_model = ChatGroq(
-    temperature=0.2,
-    model_name='llama3-70b-8192',
-    api_key=groq_api_key,
-)
+# chat_model = ChatGroq(
+#     temperature=0.2,
+#     model_name='llama3-70b-8192',
+#     api_key=groq_api_key,
+# )
+
+chat_model = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=anthropic_api_key, max_tokens=400)
 
 vs, embed_model = create_vector_database()
 vectorstore = Chroma(embedding_function=embed_model, persist_directory="chroma_db_llamaparse1", collection_name="equitech")
@@ -234,7 +270,7 @@ def get_answer(question, session_id):
         #                 external_sources.append(valid_new_url or "Source URL not available")
         
         # # Format the response with both internal and external sources
-        response = f"{rag_answer}\n\nSources: {sources}\n"
+        response = f"{rag_answer}"
         
         # if trustbreed_sources:
         #     response += "From Trustbreed Document:\n"
