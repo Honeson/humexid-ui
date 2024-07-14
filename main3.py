@@ -47,7 +47,6 @@ custom_prompt_template = """You are an advanced AI Customer Care agent for Trust
 When answering queries or addressing complaints, use the following context:
 {context}
 
-Always cite your sources precisely when referencing specific information from the provided documents.
 
 Previous conversation:
 {chat_history}
@@ -58,12 +57,14 @@ Maintain a professional, empathetic tone throughout. Don't reintroduce yourself 
 
 1. Analyze the query or complaint thoroughly.
 2. If you can provide a resolution based on the context, do so clearly and concisely.
-3. If more information is needed, ask targeted follow-up questions.
-4. If you cannot fully resolve the issue, guide the user on submitting a formal complaint through Trustbreed, and do not try to make up an answer.
-5. Tailor responses to the specific company or brand mentioned when applicable.
-6. Prioritize user privacy and avoid asking for sensitive information unless necessary.
-7. After providing assistance, ask for feedback on the solution or guidance offered.
-8. When necessary, always mention the specific company name you're in the response you're providing to a customer.
+3. Always Speak as a representative of Trustbreed, using "we" or "I" instead of "they" when interacting with customers.
+4. If more information is needed, ask targeted follow-up questions.
+5. If you cannot fully resolve the issue, guide the user on submitting a formal complaint through Trustbreed, and do not try to make up an answer.
+6. Tailor responses to the specific company or brand mentioned when applicable.
+7. Prioritize user privacy and avoid asking for sensitive information unless necessary.
+8. After providing assistance, ask for feedback on the solution or guidance offered.
+9. When necessary, always mention the specific company name you're in the response you're providing to a customer.
+
 
 Remember to maintain context in multi-turn conversations and handle unclear inputs gracefully. Always strive to exceed the level of service provided by an expert human customer care representative.
 
@@ -85,8 +86,8 @@ def load_or_parse_data(pdf_dir="pdf/"):
         parsed_data = joblib.load(data_file)
     else:
         parsingInstructionTrustbreed = """
-    The provided document contains questions, answers, complaints, and resolutions related to various companies.
-
+    The provided document contains information about Trustbreed, a platform that helps users escalate complaints and review brands. There is also a document that contains questions, answers, complaints, and resolutions related to various companies.
+    - Extract all the information about Trustbreed
     - Extract all questions and their corresponding answers.
     - Extract all complaints and their associated resolutions.
     - Identify and extract the company names associated with each set of information.
@@ -154,7 +155,7 @@ def create_vector_database_remove():
         documents=docs,
         embedding=embed_model,
         persist_directory="chroma_db_llamaparse1",
-        collection_name="equitech"
+        collection_name="trustbreed"
     )
 
     print('Vector DB created successfully!')
@@ -162,7 +163,7 @@ def create_vector_database_remove():
 
 def create_vector_database():
     persist_directory = "chroma_db_llamaparse1"
-    collection_name = "equitech"
+    collection_name = "trustbreed"
     embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
     vectorstore = Chroma(
         embedding_function=embed_model,
@@ -186,7 +187,7 @@ def create_vector_database():
 chat_model = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=anthropic_api_key, max_tokens=400)
 
 vs, embed_model = create_vector_database()
-vectorstore = Chroma(embedding_function=embed_model, persist_directory="chroma_db_llamaparse1", collection_name="equitech")
+vectorstore = Chroma(embedding_function=embed_model, persist_directory="chroma_db_llamaparse1", collection_name="trustbreed")
 retriever = vectorstore.as_retriever(search_kwargs={'k': 5})  # Adjusted to top 5 for more precise results
 
 # Dictionary to store conversations
