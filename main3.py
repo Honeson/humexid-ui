@@ -5,7 +5,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from fastapi import FastAPI, HTTPException
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
-
+from time import time
 ##### LLAMAPARSE #####
 from llama_parse import LlamaParse
 
@@ -179,7 +179,7 @@ def create_vector_database():
     persist_directory = "chroma_db_llamaparse1"
     collection_name = "trustbreed"
     embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
-    embed_model = OpenAIEmbeddings(model='text-embedding-3-large')
+    #embed_model = OpenAIEmbeddings(model='text-embedding-3-large')
     vectorstore = Chroma(
         #embedding_function=embed_model,
         persist_directory=persist_directory,
@@ -200,11 +200,12 @@ def create_vector_database():
 # )
 
 chat_model = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=anthropic_api_key, max_tokens=400)
-
-#vs, embed_model = create_vector_database()
-embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
+time.sleep(5)
+vs, embed_model = create_vector_database()
+#embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
 vectorstore = Chroma(embedding_function=embed_model, persist_directory="chroma_db_llamaparse1", collection_name="trustbreed")
-retriever = vectorstore.as_retriever(search_kwargs={'k': 5})  # Adjusted to top 5 for more precise results
+time.sleep(5)
+retriever = vs.as_retriever(search_kwargs={'k': 5})  # Adjusted to top 5 for more precise results
 
 # Dictionary to store conversations
 conversations = {}
