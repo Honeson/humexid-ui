@@ -1,8 +1,9 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from fastapi import FastAPI, HTTPException
+from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
 ##### LLAMAPARSE #####
@@ -178,8 +179,9 @@ def create_vector_database():
     persist_directory = "chroma_db_llamaparse1"
     collection_name = "trustbreed"
     embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
+    #embed_model = OpenAIEmbeddings(model='text-embedding-3-large')
     vectorstore = Chroma(
-        embedding_function=embed_model,
+        #embedding_function=embed_model,
         persist_directory=persist_directory,
         collection_name=collection_name
     )

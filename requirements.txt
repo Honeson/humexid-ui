@@ -8,6 +8,7 @@ fastembed==0.2.7
 openai==1.30.5
 uvicorn==0.25.0
 langchain_anthropic
+langchain_openai
 llama-index-core==0.10.41
 llama-parse==0.4.4
 llamaindex-py-client==0.1.19
