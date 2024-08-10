@@ -1,6 +1,6 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -26,6 +26,12 @@ import joblib
 import os
 import nest_asyncio  # noqa: E402
 nest_asyncio.apply()
+# Add CORS middleware if needed
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, status
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
 
 from dotenv import load_dotenv
 
@@ -37,9 +43,16 @@ llamaparse_api_key = os.environ.get('LLAMA_CLOUD_API_KEY')
 groq_api_key = os.environ.get("GROQ_API_KEY")
 anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY')
 
-class Query(BaseModel):
-    question: str
-    session_id: str
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Custom prompt template
 custom_prompt_template = """You are an advanced AI Customer Care agent for Trustbreed, a platform that helps users escalate complaints and review brands. Your primary goal is to assist users in resolving their issues efficiently and effectively. You have access to specific information about complaints, resolutions, and company FAQs from provided documents, as well as extensive general knowledge.
@@ -227,128 +240,152 @@ def get_answer(question, session_id):
         sources = rag_response.get('sources', [])
         source_documents = rag_response.get('source_documents', [])
         
-        # # Initialize lists for internal and external sources
-        # trustbreed_sources = []
-        # external_sources = []
         
-        # # First, try to use the provided sources
-        # if sources:
-        #     for source in sources:
-        #         if 'Trustbreed PDF' in source:
-        #             trustbreed_sources.append(source)
-        #         else:
-        #             # Validate and format the URL
-        #             valid_url = validate_and_format_url(source)
-        #             if valid_url:
-        #                 external_sources.append(valid_url)
-        #             else:
-        #                 # If it's not a valid URL, ask for a correct one
-        #                 source_query = f"The source '{source}' is not a valid direct URL. Please provide a correct, full URL that supports this information."
-        #                 new_url = chat_model.invoke(source_query).content.strip()
-        #                 valid_new_url = validate_and_format_url(new_url)
-        #                 external_sources.append(valid_new_url or "Source URL not available")
-        
-        # # If no sources were provided or they were insufficient, use source_documents
-        # if not (trustbreed_sources or external_sources) and source_documents:
-        #     for doc in source_documents:
-        #         source = doc.metadata.get('source', 'Unknown Source')
-        #         if 'Trustbreed PDF' in source:
-        #             trustbreed_sources.append(source)
-        #         else:
-        #             # Ask the model to find a relevant external source
-        #             source_query = f"Provide a reputable external source with a direct, full URL that supports this information: {doc.page_content}"
-        #             external_url = chat_model.invoke(source_query).content.strip()
-                    
-        #             # Validate and format the provided URL
-        #             valid_url = validate_and_format_url(external_url)
-        #             if valid_url:
-        #                 external_sources.append(valid_url)
-        #             else:
-        #                 # If it's not a valid URL, ask again
-        #                 retry_query = f"The previous URL '{external_url}' is not valid. Please provide a correct, direct, full URL for this information."
-        #                 new_url = chat_model.invoke(retry_query).content.strip()
-        #                 valid_new_url = validate_and_format_url(new_url)
-        #                 external_sources.append(valid_new_url or "Source URL not available")
-        
-        # # Format the response with both internal and external sources
         response = f"{rag_answer}"
-        
-        # if trustbreed_sources:
-        #     response += "From Trustbreed Document:\n"
-        #     for source in trustbreed_sources:
-        #         response += f"- {source}\n"
-        
-        # if external_sources:
-        #     response += "\nExternal Sources:\n"
-        #     for source in external_sources:
-        #         response += f"- {source}\n"
-        
-        # # If no relevant documents found, use general knowledge
-        # if not (trustbreed_sources or external_sources):
-        #     # Ask for a comprehensive answer with multiple reliable sources
-        #     prompt = f"""You don't have specific information about that in your Trustbreed documents. 
-        #     Please provide a comprehensive answer to this question based on your general knowledge: {question}
-
-        #     Include at least two reputable external sources. For each source, provide a direct, full URL that supports your answer. Ensure each URL is valid and starts with http:// or https://."""
-        #     general_knowledge = chat_model.invoke(prompt).content
-            
-        #     # Validate the URLs in the general knowledge response
-        #     lines = general_knowledge.split('\n')
-        #     validated_lines = []
-        #     for line in lines:
-        #         if 'http://' in line or 'https://' in line:
-        #             url_start = line.find('http')
-        #             url_end = line.find(' ', url_start)
-        #             url_end = url_end if url_end != -1 else len(line)
-        #             url = line[url_start:url_end]
-        #             valid_url = validate_and_format_url(url)
-        #             if valid_url:
-        #                 line = line.replace(url, valid_url)
-        #             else:
-        #                 line += " (URL validation failed)"
-        #         validated_lines.append(line)
-            
-        #     general_knowledge = '\n'.join(validated_lines)
-        #     response = f"I don't have specific information about that in my Trustbreed documents. However, based on my general knowledge:\n\n{general_knowledge}"
         
         return response
     except Exception as e:
         print(f"Error in get_answer: {e}")
         return f"I encountered an error while trying to answer your question. Please try again: {e}"
 
-@app.post("/ask")
-async def ask_question(query: Query):
-    try:
-        answer = get_answer(query.question, query.session_id)
-        return {"answer": answer}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/ask")
+# async def ask_question(query: Query):
+#     try:
+#         answer = get_answer(query.question, query.session_id)
+#         return {"answer": answer}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-# Optional: Add an endpoint to clear a session's history
-@app.post("/clear_session")
-async def clear_session(session_id: str):
-    if session_id in conversations:
-        del conversations[session_id]
-        return {"message": "Session history cleared"}
-    else:
-        return {"message": "No such session found"}
+# # Optional: Add an endpoint to clear a session's history
+# @app.post("/clear_session")
+# async def clear_session(session_id: str):
+#     if session_id in conversations:
+#         del conversations[session_id]
+#         return {"message": "Session history cleared"}
+#     else:
+#         return {"message": "No such session found"}
     
 
-import re
+class Query(BaseModel):
+    question: str
+    session_id: str
 
-def validate_and_format_url(url):
-    # Basic URL validation regex
-    pattern = re.compile(
-        r'^(?:http|ftp)s?://'  # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
-        r'localhost|'  # localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-        r'(?::\d+)?'  # optional port
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+class APIResponse(BaseModel):
+    status: str
+    status_code: int
+    message: str
+    data: Optional[dict] = None
+    timestamp: str
 
-    if re.match(pattern, url):
-        # Ensure it starts with http:// or https://
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
-        return url
-    return None
+    
+@app.post("/ask", response_model=APIResponse)
+async def ask_question(query: Query):
+    """
+    Process a user's question and provide an AI-generated response.
+
+    This endpoint takes a user's question/chat and session ID, processes the query using
+    an AI model, and returns a contextually relevant answer.
+
+    Parameters:
+    - question (str): The user's question or complaint.
+    - session_id (str): A unique identifier for the user's session to maintain conversation context.
+
+    Returns:
+    - APIResponse: A structured response containing:
+        - status (str): 'success' or 'error'
+        - status_code (int): HTTP status code
+        - message (str): A brief description of the result
+        - data (dict): Contains the 'answer' key with the AI-generated response
+        - timestamp (str): ISO format timestamp of the response
+
+    Raises:
+    - HTTPException: 500 Internal Server Error if processing fails
+    """
+    try:
+        answer = get_answer(query.question, query.session_id)
+        return APIResponse(
+            status="success",
+            status_code=status.HTTP_200_OK,
+            message="Question answered successfully",
+            data={"answer": answer},
+            timestamp=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@app.post("/clear_session", response_model=APIResponse)
+async def clear_session(session_id: str):
+    """
+    Clear the conversation history for a specific session.
+
+    This endpoint removes all stored conversation context for the given session ID,
+    effectively starting a new conversation.
+
+    Parameters:
+    - session_id (str): The unique identifier of the session to be cleared.
+
+    Returns:
+    - APIResponse: A structured response containing:
+        - status (str): 'success'
+        - status_code (int): HTTP status code (200)
+        - message (str): Confirmation of session clearance or notification if session wasn't found
+        - timestamp (str): ISO format timestamp of the response
+
+    Note:
+    - This operation is idempotent; calling it on a non-existent session is not an error.
+    """
+    if session_id in conversations:
+        del conversations[session_id]
+        return APIResponse(
+            status="success",
+            status_code=status.HTTP_200_OK,
+            message="Session history cleared successfully",
+            timestamp=datetime.utcnow().isoformat()
+        )
+    else:
+        return APIResponse(
+            status="success",
+            status_code=status.HTTP_200_OK,
+            message="No such session found",
+            timestamp=datetime.utcnow().isoformat()
+        )
+
+@app.get("/health", response_model=APIResponse)
+async def health_check():
+    """
+    Check the health status of the API.
+
+    This endpoint can be used for monitoring and ensuring the API is operational.
+    It doesn't check the health of dependent services (e.g., database, AI model),
+    but confirms that the API server itself is running and responsive.
+
+    Returns:
+    - APIResponse: A structured response containing:
+        - status (str): 'success' indicating the API is operational
+        - status_code (int): HTTP status code (200)
+        - message (str): Confirmation that the API is healthy and running
+        - timestamp (str): ISO format timestamp of the response
+
+    Note:
+    - This endpoint can be used by monitoring tools or load balancers to check service availability.
+    """
+    return APIResponse(
+        status="success",
+        status_code=status.HTTP_200_OK,
+        message="API is healthy and running",
+        timestamp=datetime.utcnow().isoformat()
+    )
+
+# Error handler for unhandled exceptions
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    return APIResponse(
+        status="error",
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        message="An unexpected error occurred",
+        data={"error_details": str(exc)},
+        timestamp=datetime.utcnow().isoformat()
+    )
