@@ -1,6 +1,6 @@
-# __import__('pysqlite3')
-# import sys
-# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -277,7 +277,7 @@ class APIResponse(BaseModel):
     data: Optional[dict] = None
     timestamp: str
 
-    
+
 @app.post("/ask", response_model=APIResponse)
 async def ask_question(query: Query):
     """
