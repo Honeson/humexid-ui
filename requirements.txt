@@ -10,3 +10,4 @@ langchain_anthropic
 llama-index-core==0.10.41
 llama-parse==0.4.4
 llamaindex-py-client==0.1.19
+python-dotenv==1.0.1
