@@ -181,7 +181,7 @@ def create_vector_database():
     embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
     #embed_model = OpenAIEmbeddings(model='text-embedding-3-large')
     vectorstore = Chroma(
-        #embedding_function=embed_model,
+        embedding_function=embed_model,
         persist_directory=persist_directory,
         collection_name=collection_name
     )
@@ -201,10 +201,10 @@ def create_vector_database():
 
 chat_model = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=anthropic_api_key, max_tokens=400)
 
-vs, embed_model = create_vector_database()
+#vs, embed_model = create_vector_database()
 #embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
 #vectorstore = Chroma(embedding_function=embed_model, persist_directory="chroma_db_llamaparse1", collection_name="trustbreed")
-retriever = vs.as_retriever(search_kwargs={'k': 5})  # Adjusted to top 5 for more precise results
+#retriever = vs.as_retriever(search_kwargs={'k': 5})  # Adjusted to top 5 for more precise results
 
 # Dictionary to store conversations
 conversations = {}
@@ -224,8 +224,11 @@ def get_qa_chain(session_id):
     doc_chain = load_qa_chain(chat_model, chain_type="stuff", prompt=prompt)
     
     # Now create the retrieval chain
+    vs, embed_model = create_vector_database()
+    retriever = vs.as_retriever(search_kwargs={'k': 5})
     qa_chain = RetrievalQAWithSourcesChain(
         combine_documents_chain=doc_chain,
+        
         retriever=retriever,
         return_source_documents=True,
         memory=memory,
