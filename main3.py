@@ -5,7 +5,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from fastapi import FastAPI, HTTPException
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
-from time import time
+import time
 ##### LLAMAPARSE #####
 from llama_parse import LlamaParse
 
