@@ -94,86 +94,86 @@ def set_custom_prompt():
 prompt = set_custom_prompt()
 
 
-# def load_or_parse_data(pdf_dir="pdf/"):
-#     data_file = "data/parsed_data.pkl"
-#     if os.path.exists(data_file):
-#         parsed_data = joblib.load(data_file)
-#     else:
-#         parsingInstructionTrustbreed = """
-#     The provided document contains information about Trustbreed, a platform that helps users escalate complaints and review brands. There is also a document that contains questions, answers, complaints, and resolutions related to various companies.
-#     - Extract all the information about Trustbreed
-#     - Extract all questions and their corresponding answers.
-#     - Extract all complaints and their associated resolutions.
-#     - Identify and extract the company names associated with each set of information.
+def load_or_parse_data(pdf_dir="pdf/"):
+    data_file = "data/parsed_data.pkl"
+    if os.path.exists(data_file):
+        parsed_data = joblib.load(data_file)
+    else:
+        parsingInstructionTrustbreed = """
+    The provided document contains information about Trustbreed, a platform that helps users escalate complaints and review brands. There is also a document that contains questions, answers, complaints, and resolutions related to various companies.
+    - Extract all the information about Trustbreed
+    - Extract all questions and their corresponding answers.
+    - Extract all complaints and their associated resolutions.
+    - Identify and extract the company names associated with each set of information.
 
   
-#     - For each company, create a separate section with the company name as the heading.
-#     - Under each company heading, clearly label and separate:
-#         - Questions and Answers
-#         - Complaints and Resolutions
-#     - Maintain the original order of information as it appears in the document.
+    - For each company, create a separate section with the company name as the heading.
+    - Under each company heading, clearly label and separate:
+        - Questions and Answers
+        - Complaints and Resolutions
+    - Maintain the original order of information as it appears in the document.
 
-#     - For each extracted piece of information (question, answer, complaint, or resolution), indicate the page number from which it was extracted.
-#     - Format page numbers as: [Page X] at the end of each extracted item.
+    - For each extracted piece of information (question, answer, complaint, or resolution), indicate the page number from which it was extracted.
+    - Format page numbers as: [Page X] at the end of each extracted item.
 
-#     - If a single item (question, answer, complaint, or resolution) spans multiple pages, indicate the range:
-#     [Pages X-Y]
+    - If a single item (question, answer, complaint, or resolution) spans multiple pages, indicate the range:
+    [Pages X-Y]
 
-#     - Maintain any crucial formatting (e.g., bullet points, numbered lists) within the extracted text.
+    - Maintain any crucial formatting (e.g., bullet points, numbered lists) within the extracted text.
 
-#     - f it's unclear which company a piece of information belongs to, place it under a separate "Unspecified Company" heading.
+    - f it's unclear which company a piece of information belongs to, place it under a separate "Unspecified Company" heading.
 
-#     - Ensure all relevant information from the document is extracted and properly categorized.
+    - Ensure all relevant information from the document is extracted and properly categorized.
     
-#     - Please process the entire document according to these instructions, ensuring accuracy in extraction and clear organization of the output.
-#         """
-#         parser = LlamaParse(api_key=llamaparse_api_key, result_type="markdown", parsing_instruction=parsingInstructionTrustbreed, max_timeout=5000,)
-#          # Get all PDF file paths
+    - Please process the entire document according to these instructions, ensuring accuracy in extraction and clear organization of the output.
+        """
+        parser = LlamaParse(api_key=llamaparse_api_key, result_type="markdown", parsing_instruction=parsingInstructionTrustbreed, max_timeout=5000,)
+         # Get all PDF file paths
         
-#         pdf_files = [os.path.join(pdf_dir, f) for f in os.listdir(pdf_dir) if f.endswith(".pdf")]
-#         print(f"Found PDF files: {pdf_files}")
+        pdf_files = [os.path.join(pdf_dir, f) for f in os.listdir(pdf_dir) if f.endswith(".pdf")]
+        print(f"Found PDF files: {pdf_files}")
         
-#         # Pass all file paths to LlamaParse at once
-#         llama_parse_documents = parser.load_data(pdf_files)
+        # Pass all file paths to LlamaParse at once
+        llama_parse_documents = parser.load_data(pdf_files)
         
-#         # Extract and store page numbers
-#         for doc in llama_parse_documents:
-#             page_num = doc.metadata.get('page_number')
-#             if page_num:
-#                 doc.metadata['source'] = f"Trustbreed PDF, Page {page_num}"
+        # Extract and store page numbers
+        for doc in llama_parse_documents:
+            page_num = doc.metadata.get('page_number')
+            if page_num:
+                doc.metadata['source'] = f"Trustbreed PDF, Page {page_num}"
 
-#         joblib.dump(llama_parse_documents, data_file)
-#         parsed_data = llama_parse_documents
-#     return parsed_data
+        joblib.dump(llama_parse_documents, data_file)
+        parsed_data = llama_parse_documents
+    return parsed_data
 
-#parsed_data = load_or_parse_data()
+parsed_data = load_or_parse_data()
 
-# def create_vector_database_remove():
-#     with open('data/output.md', 'w') as f:  # Open the file in write mode ('w') to overwrite
-#         for doc in parsed_data:
-#             f.write(doc.text + '\n')
+def create_vector_database_remove():
+    with open('data/output.md', 'w') as f:  # Open the file in write mode ('w') to overwrite
+        for doc in parsed_data:
+            f.write(doc.text + '\n')
 
-#     markdown_path = "data/output.md"
-#     loader = UnstructuredMarkdownLoader(markdown_path)
+    markdown_path = "data/output.md"
+    loader = UnstructuredMarkdownLoader(markdown_path)
 
-#     documents = loader.load()
-#     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
-#     docs = text_splitter.split_documents(documents)
+    documents = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
+    docs = text_splitter.split_documents(documents)
 
-#     print(f"length of documents loaded: {len(documents)}")
-#     print(f"total number of document chunks generated :{len(docs)}")
+    print(f"length of documents loaded: {len(documents)}")
+    print(f"total number of document chunks generated :{len(docs)}")
 
-#     embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
+    embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
 
-#     vs = Chroma.from_documents(
-#         documents=docs,
-#         embedding=embed_model,
-#         persist_directory="chroma_db_llamaparse1",
-#         collection_name="trustbreed"
-#     )
+    vs = Chroma.from_documents(
+        documents=docs,
+        embedding=embed_model,
+        persist_directory="chroma_db_llamaparse1",
+        collection_name="trustbreed"
+    )
 
-#     print('Vector DB created successfully!')
-#     return vs, embed_model
+    print('Vector DB created successfully!')
+    return vs, embed_model
 
 def create_vector_database():
     persist_directory = "chroma_db_llamaparse1"
@@ -203,7 +203,7 @@ chat_model = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=anthropic
 
 vs, embed_model = create_vector_database()
 #embed_model = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
-#vectorstore = Chroma(embedding_function=embed_model, persist_directory="chroma_db_llamaparse1", collection_name="trustbreed")
+vectorstore = Chroma(embedding_function=embed_model, persist_directory="chroma_db_llamaparse1", collection_name="trustbreed")
 retriever = vs.as_retriever(search_kwargs={'k': 5})  # Adjusted to top 5 for more precise results
 
 # Dictionary to store conversations
